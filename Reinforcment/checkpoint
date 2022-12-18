@@ -1,0 +1,2 @@
+model_checkpoint_path: "sequential_1doorWindowRandomStartSuccessdqn_weights2.h5f"
+all_model_checkpoint_paths: "sequential_1doorWindowRandomStartSuccessdqn_weights2.h5f"
