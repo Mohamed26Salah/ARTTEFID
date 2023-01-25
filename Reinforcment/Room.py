@@ -11,7 +11,7 @@ import random
 import warnings
 from logging import exception
 class RoomEnv(Env):
-    def __init__(self,FurnitureDimensions,Doors,Windows):
+    def __init__(self,FurnitureDimensions,DoorsDim , DoorsPos,WindowsDim,WindowsPos):
         # Actions we can up, down, right, left
         self.action_space = Discrete(4)
         # Room Dimensions
@@ -24,11 +24,11 @@ class RoomEnv(Env):
         self.screen_height=self.scale_factor*self.observation_space.high[0][0]
 
         # need to change the array from (door pos, door dim) to (door dim , (door 1 pos , door 2 pos , door 3 pos,etc))
-        self.doors_pos = Doors[1]
-        self.door_dimensions = tuple(self.scale_factor * elem for elem in Doors[0])
+        self.doors_pos = DoorsPos
+        self.door_dimensions = tuple(self.scale_factor * elem for elem in DoorsDim)
         # same for windows 
-        self.window_pos = Windows[1]
-        self.window_dimensions = tuple(self.scale_factor * elem for elem in Windows[0])
+        self.window_pos = WindowsPos
+        self.window_dimensions = tuple(self.scale_factor * elem for elem in WindowsDim)
 
         self.furniture_dimensions=tuple(self.scale_factor * elem for elem in FurnitureDimensions)
         # need to calculate an array of distances not just 3 maybe like (furniture to center , furn to doors(furn to door1 ,etc), furn to windows (furn to window 1 , etc))
