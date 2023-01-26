@@ -11,7 +11,7 @@ import random
 import warnings
 from logging import exception
 class RoomEnv(Env):
-    def __init__(self,FurnitureDimensions,DoorsDim , DoorsPos,WindowsDim,WindowsPos):
+    def __init__(self,FurnitureDimensions,DoorsDim , DoorsPos,WindowsDim,WindowsPos , keywords):
         # Actions we can up, down, right, left
         self.action_space = Discrete(4)
         # Room Dimensions
@@ -33,7 +33,8 @@ class RoomEnv(Env):
         self.furniture_dimensions=tuple(self.scale_factor * elem for elem in FurnitureDimensions)
         # need to calculate an array of distances not just 3 maybe like (furniture to center , furn to doors(furn to door1 ,etc), furn to windows (furn to window 1 , etc))
         self.entropy=self.CalculateDistances()
-
+        self.text=[0,0,0]
+        self.keywords= keywords
         
         # Set shower length
         self.move_length = 200
@@ -111,9 +112,22 @@ class RoomEnv(Env):
         return self.state, reward, done, info
     def render(self,mode):
         if self.screen is None:
+            
             pygame.init()
             pygame.display.init()
             pygame.display.set_caption("Layout Optimization")
+            font = pygame.font.Font(None, 20)
+            self.text[0] = font.render(" window", True, (255, 255, 255))
+            if(self.window_dimensions[1]>self.window_dimensions[0]):
+                self.text[0]= pygame.transform.rotate(self.text[0], 90)
+            self.text[1] = font.render(" Door", True, (255, 255, 255))
+            if(self.door_dimensions[1]>self.door_dimensions[0]):
+                self.text[1]= pygame.transform.rotate(self.text[1], 90)
+            self.text[2] = font.render(self.keywords[0], True, (0, 0, 0))
+            if(self.furniture_dimensions[1]>self.furniture_dimensions[0]):
+                self.text[2]= pygame.transform.rotate(self.text[2], 90)
+
+           
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         if self.clock is None:
             self.clock = pygame.time.Clock()
@@ -124,8 +138,10 @@ class RoomEnv(Env):
             return None
 
         x = self.state
-
+        
         self.screen.fill((143,0,255))
+        
+        
         # need to draw rects dynamically in a func 
         self.DrawElements()
 #         pygame.event.pump()
@@ -141,14 +157,20 @@ class RoomEnv(Env):
 
                 sys.exit(0)
     def DrawElements(self):
+        
         # make for loop in the future for multibile furniture
         pygame.draw.rect(self.screen,(252, 198, 108),((self.state[0]*self.scale_factor-(self.furniture_dimensions[0]/2)),(self.state[1]*self.scale_factor-(self.furniture_dimensions[1]/2)),self.furniture_dimensions[0],self.furniture_dimensions[1])) 
-
-        for DoorPosI in self.doors_pos:
-            pygame.draw.rect(self.screen,(0,0,0),(DoorPosI[0]*self.scale_factor,DoorPosI[1]*self.scale_factor,self.door_dimensions[0],self.door_dimensions[1]))
+        self.screen.blit(self.text[2], (self.state[0]*self.scale_factor, self.state[1]*self.scale_factor))
+        
         for WindowPosI in self.window_pos:
             pygame.draw.rect(self.screen,(0,0,0),(WindowPosI[0]*self.scale_factor,WindowPosI[1]*self.scale_factor,self.window_dimensions[0],self.window_dimensions[1]))
+            self.screen.blit(self.text[0], (WindowPosI[0]*self.scale_factor, WindowPosI[1]*self.scale_factor))
 
+        
+        for DoorPosI in self.doors_pos:
+            pygame.draw.rect(self.screen,(0,0,0),(DoorPosI[0]*self.scale_factor,DoorPosI[1]*self.scale_factor,self.door_dimensions[0],self.door_dimensions[1]))
+           
+            self.screen.blit(self.text[1], (DoorPosI[0]*self.scale_factor, DoorPosI[1]*self.scale_factor))
 
     def close(self):
             pygame.display.quit()
