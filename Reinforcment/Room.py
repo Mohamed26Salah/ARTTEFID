@@ -35,16 +35,28 @@ class RoomEnv(Env):
         self.entropy=self.CalculateDistances()
         self.text=[0,0,0]
         self.keywords= keywords
+        self.colided = [False, False,False,False ]
         
         # Set shower length
-        self.move_length = 200
+        self.move_length = 100*len(keywords)
         self.screen = None
         self.clock = None
         self.isopen = True
         self.accumulator = 0
         self.past_state=[0,0]
         self.past_dist = 0
-
+    def GetReward(self,keyword):
+        self.isColliding()
+        reward=int(self.entropy)/10
+        if keyword == "bed":
+            
+            if self.colided.count(False)==3:
+                print(self.colided)
+                reward=int(self.entropy)/10 +100
+            else:
+                reward = -1
+    
+        return reward
     def CalculateDistances(self):
         totalDistance =0
         for DoorPosI in self.doors_pos:
@@ -55,25 +67,47 @@ class RoomEnv(Env):
         totalDistance+=int(math.dist( [50,50], self.state ))
         return totalDistance
         
+    def isColliding(self):
         
+        # if(self.state[0]+FurnitureDimensions[0]==1 ):
+        if(self.state[0]>=100 ):
+          # go right
+          self.colided[0]=True
+         
+        if(self.state[0]<=0 ):
+          # go left
+          self.colided[1]=True
+        
+        if(self.state[1]>=100):
+          # go down
+          self.colided[2]=True
+          
+        if(self.state[1]>0):
+          # go up
+          self.colided[3]=True
+          
+        
+
     def step(self, action):
         # Apply action
 
         #  need to adjust bounds to room dimensions dynamically
+
+       
+       
         if(action==0 and self.state[0]<100 ):
-          # go right
-          self.state = np.add([1,0],self.state)
-        if(action==1 and self.state[0]>0 ):
-          # go left
-          self.state = np.add([-1,0],self.state)
-        if(action==2 and self.state[1]<100):
-          # go down
-          self.state = np.add([0,1],self.state)
-        if(action==3 and self.state[1]>0):
-          # go up
-          self.state = np.add([0,-1],self.state)
-        # Reduce move length by 1 second
+            self.state = np.add([1,0],self.state)
+        elif(action==1 and self.colided[0] ):
+            self.state = np.add([-1,0],self.state)
+        elif(action==2 and self.state[1]<100):
+            self.state = np.add([0,1],self.state)
+        
+        elif(action==3 and self.state[1]>0):
+            self.state = np.add([0,-1],self.state)
+             # Reduce move length by 1 second
+        
         self.move_length -= 1 
+
 
         # need to calculate an array of distances not just 3 maybe like (furniture to center , furn to doors(furn to door1 ,etc), furn to windows (furn to window 1 , etc))
         self.entropy=self.CalculateDistances()
@@ -81,31 +115,31 @@ class RoomEnv(Env):
 
         # Calculate reward
         if(self.past_dist<int(self.entropy)):
-            reward=int(self.entropy)/10
+            reward= self.GetReward(self.keywords[0])
         else:
             reward= -1
             
-#         reward = int(math.dist(np.mean( np.array([ [50,50], self.door_pos ]), axis=0 ), self.state))
-#         if(self.past_state[0] ==self.state[0] and self.past_state[1] ==self.state[1]):
-           
-#             reward= -1
-       
-        
-        
+        #         reward = int(math.dist(np.mean( np.array([ [50,50], self.door_pos ]), axis=0 ), self.state))
+        #         if(self.past_state[0] ==self.state[0] and self.past_state[1] ==self.state[1]):
+            
+        #             reward= -1
+
+
+
         self.past_state =self.state
-        
+
         self.past_dist=int(self.entropy)
-        # Check if shower is done
+        # Check if the moves are done
         if self.move_length <= 0: 
             done = True
         else:
             done = False
-        
+
         # Apply temperature noise
         #self.state += random.randint(-1,1)
         # Set placeholder for info
         info = {}
-        
+
         
         
         # Return step information
@@ -153,9 +187,7 @@ class RoomEnv(Env):
         for event in pygame.event.get():
             if event.type == pygame.QUIT: 
                 self.close()
-                warnings.filterwarnings("ignore")
-
-                sys.exit(0)
+  
     def DrawElements(self):
         
         # make for loop in the future for multibile furniture
@@ -169,13 +201,16 @@ class RoomEnv(Env):
         
         for DoorPosI in self.doors_pos:
             pygame.draw.rect(self.screen,(0,0,0),(DoorPosI[0]*self.scale_factor,DoorPosI[1]*self.scale_factor,self.door_dimensions[0],self.door_dimensions[1]))
-           
+            
             self.screen.blit(self.text[1], (DoorPosI[0]*self.scale_factor, DoorPosI[1]*self.scale_factor))
 
     def close(self):
+            
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+            warnings.filterwarnings("ignore")
+            sys.exit(0)
 
     def render2(self):
         print(self.state)
@@ -228,6 +263,6 @@ class RoomEnv(Env):
         # print(self.state)
         self.state = [random.randint(25, 75),random.randint(25, 75)]
         # Reset shower time
-        self.move_length = 100
+        self.move_length = 100*len(self.keywords)
         return  self.state
     
