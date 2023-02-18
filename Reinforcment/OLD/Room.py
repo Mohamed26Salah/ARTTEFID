@@ -22,10 +22,9 @@ class RoomEnv(Env):
         self.observation_space = np.zeros((1,2)) 
         # Set start temp
         values=[random.randint(0,RoomDimension[0]),random.randint(0,RoomDimension[1])]
-        self.state2 =[[random.randint(int(RoomDimension[0]/4),int(RoomDimension[0]/2)), random.randint(int(RoomDimension[1]/4),int(RoomDimension[1]/2))] for _ in range(len(keywords))]
-        self.state= self.state2[self.turn]
-        self.FurnitureQueue=1
-        self.scale_factor = 1
+        self.state2 =[]
+        self.state= values
+        self.scale_factor = 8
         # add custom room dimentions in the future 
         self.screen_width=self.scale_factor*self.RoomDimension[0]
         self.screen_height=self.scale_factor*self.RoomDimension[1]
@@ -37,26 +36,23 @@ class RoomEnv(Env):
         self.window_pos = WindowsPos
         self.window_dimensions = tuple(self.scale_factor * elem for elem in WindowsDim)
 
-        self.real_furniture_dimensions=[[num for num in sub_list] for sub_list in FurnitureDimensions]
+        
         self.furniture_dimensions=[[self.scale_factor * num for num in sub_list] for sub_list in FurnitureDimensions]
         # need to calculate an array of distances not just 3 maybe like (furniture to center , furn to doors(furn to door1 ,etc), furn to windows (furn to window 1 , etc))
         self.entropy=[0,0]
         self.text=[0,0]
         self.Furnituretext= [0 for elm in keywords]
-        self.lastdistance=0
+        
         self.keywords= keywords
         self.colided = [False, False,False,False ]
-        self.colided2 = [False, False,False,False ]
-        
         
         # Set shower length
-        self.move_length = 10000*len(keywords)
+        self.move_length = 250*len(keywords)
         self.screen = None
         self.clock = None
         self.isopen = False
         self.accumulator = 0
-        self.maxReward=np.zeros((len(keywords))) 
-        self.BestStates =[[random.randint(0,RoomDimension[0]), random.randint(0,RoomDimension[1])] for _ in range(len(keywords))]
+        
         self.past_dist = np.zeros((len(keywords),2)) 
         
     def check_door_in_axis(self, state, door_pos, door_dimensions, scale_factor):
@@ -64,11 +60,11 @@ class RoomEnv(Env):
             return True
     
         return False
-    def GetReward(self,keyword,Furniturepos, dimensions):
-        self.colided=self.isColliding(Furniturepos,dimensions)
-        self.check_furniture_collision(Furniturepos, dimensions, self.turn)
+    def GetReward(self,keyword,Furniturepos):
+        self.isColliding(Furniturepos)
         reward=int(self.entropy)
         if keyword == "bed":
+            
             if self.colided.count(False)==3:
                 self.color[self.turn]=(0,255,0)
                 reward=reward+1
@@ -77,26 +73,11 @@ class RoomEnv(Env):
                 self.color[self.turn]=(0,0,255)
             for door_pos in self.doors_pos:
                 if (self.check_door_in_axis(Furniturepos, door_pos, self.door_dimensions, self.scale_factor)):
-                    reward=-1
+                    reward=-11
                     self.color[self.turn]=(255,0,0)
-            for KW in range(len(self.keywords)):
-                if self.keywords[KW]=="chair":
-                    reward = reward+int(math.dist(Furniturepos, self.state2[KW] ))
-        if keyword == "chair":
-            for KW in range(len(self.keywords)):
-                if self.keywords[KW]=="desk":
-                    if(self.real_furniture_dimensions[KW][0]>self.real_furniture_dimensions[KW][1]):
-                        tempColliding = self.isColliding(self.state2[KW],self.real_furniture_dimensions[KW])
-                        distance = int(math.dist(Furniturepos,(self.state2[KW][0],self.state2[KW][1]-(self.real_furniture_dimensions[KW][1]/2))))
-
-                        if distance > self.lastdistance:
-                            reward= -1
-                            
-                        else:
-                            reward = 1 / (distance + 1)
-                            
-                        self.lastdistance= distance
-
+            # for KW in range(len(self.keywords)):
+            #     if self.keywords[KW]=="chair":
+            #         reward = int(math.dist(Furniturepos, self.state2[KW] ))
 
             
     
@@ -112,63 +93,27 @@ class RoomEnv(Env):
         totalDistance+=int(math.dist( [self.door_dimensions[0]/2,self.door_dimensions[1]/2], Furniturepos ))
         return totalDistance
         
-    def isColliding(self,Furniturepos,dimensions):
-        tempCollison=self.colided
+    def isColliding(self,Furniturepos):
+        
         # if(self.state[0]+FurnitureDimensions[0]==1 ):
-        if(Furniturepos[0]+(dimensions[0]/2)>=self.RoomDimension[0] ):
+        if(Furniturepos[0]>=self.RoomDimension[0] ):
           #don't go right
-          tempCollison[0]=True
+          self.colided[0]=True
          
-        if(Furniturepos[0]-(dimensions[0]/2)<=0 ):
+        if(Furniturepos[0]<=0 ):
           #don't go left
-          tempCollison[1]=True
+          self.colided[1]=True
         
-        if(Furniturepos[1]+(dimensions[1]/2)>=self.RoomDimension[1]):
+        if(Furniturepos[1]>=self.RoomDimension[1]):
           #don't go down
-          tempCollison[2]=True
+          self.colided[2]=True
           
-        if(Furniturepos[1]-(dimensions[1]/2)<=0):
+        if(Furniturepos[1]<=0):
           #don't go up
-          tempCollison[3]=True
+          self.colided[3]=True
+          
         
 
-        return tempCollison
-
-
-
-    def nextPlease(self):
-        self.FurnitureQueue+=1
-        self.turn= (self.turn+1)%len(self.keywords)
-    def check_furniture_collision(self, furniture_pos, furniture_dimensions, ignore_index=None):
-        for i, pos in enumerate(self.state2[:self.FurnitureQueue]):
-            if ignore_index is not None and i == ignore_index:
-                continue
-            
-            other_furniture_dimensions = self.real_furniture_dimensions[i]
-            other_furniture_pos = self.state2[i]
-            
-            x1, y1 = furniture_pos
-            x2, y2 = other_furniture_pos
-            w1, h1 = furniture_dimensions
-            w2, h2 = other_furniture_dimensions
-            
-            # Check if the two pieces of furniture overlap
-            if (abs(x1 - x2) * 2 < (w1 + w2)) and (abs(y1 - y2) * 2 < (h1 + h2)):
-                # The two pieces of furniture are colliding
-                
-                # Check which side of the furniture is colliding
-                left_collision = (x1 + w1/2 > x2 - w2/2) and (x1 + w1/2 < x2 + w2/2)
-                right_collision = (x1 - w1/2 < x2 + w2/2) and (x1 - w1/2 > x2 - w2/2)
-                bottom_collision = (y1 - h1/2 < y2 + h2/2) and (y1 - h1/2 > y2 - h2/2)
-                top_collision = (y1 + h1/2 > y2 - h2/2) and (y1 + h1/2 < y2 + h2/2)
-
-                self.colided2[0]=left_collision
-                self.colided2[1]=right_collision
-                self.colided2[2]=top_collision
-                self.colided2[3]=bottom_collision
-        
-        # If no collision is detected, return None
-        return None
     def step(self, action):
         # Apply action
 
@@ -176,15 +121,14 @@ class RoomEnv(Env):
 
        
        
-        self.state=self.state2[self.turn]
+        # self.state=self.state2[self.turn]
         self.move_length -= 1 
 
       
         # need to calculate an array of distances not just 3 maybe like (furniture to center , furn to doors(furn to door1 ,etc), furn to windows (furn to window 1 , etc))
         self.entropy=self.CalculateDistances(self.state)
         #  a func  or a method to sum distances
-        reward= self.GetReward(self.keywords[self.turn],self.state,self.real_furniture_dimensions[self.turn])
-        
+        reward= self.GetReward(self.keywords[self.turn],self.state)
         # Calculate reward
         # if( self.past_dist[self.turn]<self.entropy[self.turn]):
             
@@ -195,22 +139,20 @@ class RoomEnv(Env):
             
         #             reward= -1
         
-        if(action==0 and not self.colided[0] and not self.colided2[0]):
+        if(action==0 and not self.colided[0]):
             self.state = np.add([1,0],self.state)
-        elif(action==1 and not self.colided[1]  and not self.colided2[1]):
+        elif(action==1 and not self.colided[1] ):
             self.state = np.add([-1,0],self.state)
-        elif(action==2 and not self.colided[2]  and not self.colided2[2]):
+        elif(action==2 and not self.colided[2]):
             self.state = np.add([0,1],self.state)
         
-        elif(action==3 and not self.colided[3] and not self.colided2[3]):
+        elif(action==3 and not self.colided[3]):
             self.state = np.add([0,-1],self.state)
         
             # Reduce move length by 1 second
         
 
-        if self.maxReward[self.turn]< reward:
-            self.maxReward[self.turn]= reward
-            self.BestStates[self.turn]= self.state
+
         
 
         self.past_dist=int(self.entropy)
@@ -230,11 +172,7 @@ class RoomEnv(Env):
         self.colided[1]=False
         self.colided[2]=False
         self.colided[3]=False
-        self.colided2[0]=False
-        self.colided2[1]=False
-        self.colided2[2]=False
-        self.colided2[3]=False
-        self.state2[self.turn]= self.state
+        # self.state2[self.turn]= self.state
         
         # Return step information
         
@@ -276,7 +214,7 @@ class RoomEnv(Env):
         self.DrawElements()
         self.color[self.turn]=(252, 198, 108)
 #         pygame.event.pump()
-        
+        self.clock.tick(144)
         pygame.display.flip()
         
         
@@ -286,15 +224,15 @@ class RoomEnv(Env):
                 self.close()
   
     def DrawElements(self):
+
+        pygame.draw.rect(self.screen,self.color[self.turn],((self.state[0]*self.scale_factor-(self.furniture_dimensions[self.turn][0]/2)),(self.state[1]*self.scale_factor-(self.furniture_dimensions[self.turn][1]/2)),self.furniture_dimensions[self.turn][0],self.furniture_dimensions[self.turn][1])) 
+        self.screen.blit(self.Furnituretext[self.turn], (self.state[0]*self.scale_factor, self.state[1]*self.scale_factor))
         
-        
-        # for i in range(len(self.keywords)):
-        #     pygame.draw.rect(self.screen,(0, 50, 0),((self.BestStates[i][0]*self.scale_factor-(self.furniture_dimensions[i][0]/2)),(self.BestStates[i][1]*self.scale_factor-(self.furniture_dimensions[i][1]/2)),self.furniture_dimensions[i][0],self.furniture_dimensions[i][1])) 
-        #     self.screen.blit(self.Furnituretext[i], (self.BestStates[i][0]*self.scale_factor, self.BestStates[i][1]*self.scale_factor))
-        
-        for i in range(len(self.keywords)):
-            pygame.draw.rect(self.screen,self.color[i],((self.state2[i][0]*self.scale_factor-(self.furniture_dimensions[i][0]/2)),(self.state2[i][1]*self.scale_factor-(self.furniture_dimensions[i][1]/2)),self.furniture_dimensions[i][0],self.furniture_dimensions[i][1])) 
-            self.screen.blit(self.Furnituretext[i], (self.state2[i][0]*self.scale_factor, self.state2[i][1]*self.scale_factor))
+        for i in range(len(self.state2)):
+            if not (i == self.turn):
+                pygame.draw.rect(self.screen,self.color[i],((self.state2[i][0]*self.scale_factor-(self.furniture_dimensions[i][0]/2)),(self.state2[i][1]*self.scale_factor-(self.furniture_dimensions[i][1]/2)),self.furniture_dimensions[i][0],self.furniture_dimensions[i][1])) 
+                self.screen.blit(self.Furnituretext[i], (self.state2[i][0]*self.scale_factor, self.state2[i][1]*self.scale_factor))
+
         
         for WindowPosI in self.window_pos:
             pygame.draw.rect(self.screen,(0,0,0),(WindowPosI[0]*self.scale_factor,WindowPosI[1]*self.scale_factor,self.window_dimensions[0],self.window_dimensions[1]))
@@ -306,17 +244,19 @@ class RoomEnv(Env):
             
             self.screen.blit(self.text[1], (DoorPosI[0]*self.scale_factor, DoorPosI[1]*self.scale_factor))
 
-    def close(self):
-            
-            
-            
-            
-            self.isopen = False
+    def close(self): 
+        self.isopen = False
            
             
 
 
-        
+    def nextFurniture(self):
+        values=[random.randint(0,self.RoomDimension[0]),random.randint(0,self.RoomDimension[1])]
+        self.state2.append(self.state)
+        self.state= values
+        self.turn= self.turn+1 % len(self.keywords)
+        print(self.turn)
+
     def render3(self):
         
         import numpy as np
@@ -350,9 +290,15 @@ class RoomEnv(Env):
     
     def reset(self):
         
-
+        # Reset shower temperature
+        # print("reset called")
+        # print(self.state)
+        
+        values=[random.randint(0,self.RoomDimension[0]),random.randint(0,self.RoomDimension[1])]
+        
+        self.state=values
         
         # Reset shower time
-        self.move_length = 10000*len(self.keywords)
+        self.move_length = 250*len(self.keywords)
         return  self.state
     

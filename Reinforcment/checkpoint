@@ -1,2 +1,2 @@
-model_checkpoint_path: "sequential222812dqn_weights.h5f"
-all_model_checkpoint_paths: "sequential222812dqn_weights.h5f"
+model_checkpoint_path: "lastSaved2"
+all_model_checkpoint_paths: "lastSaved2"
