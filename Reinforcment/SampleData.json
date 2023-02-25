@@ -1,7 +1,7 @@
 {
     "Furniture" :{
-    "Dimensions" :[ [107,198],[102,60],[50,50]] ,
-    "keywords" :["bed" ,"desk","chair"] 
+    "Dimensions" :[ [107,198],[107,198],[49,49],[102,60],[50,50]] ,
+    "keywords" :["bed" ,"bed" ,"Storage","desk","chair"]  
     } ,
     "RoomDimensions" :[427 , 487] ,
     "Windows" :{

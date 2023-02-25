@@ -83,20 +83,20 @@ class Windows:
 
 
 @dataclass
-class Room:
+class RoomToBeUsed:
     furniture: Furniture
     room_dimensions: List[int]
     windows: Windows
     doors: Doors
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Room':
+    def from_dict(obj: Any) -> 'RoomToBeUsed':
         assert isinstance(obj, dict)
         furniture = Furniture.from_dict(obj.get("Furniture"))
         room_dimensions = from_list(from_int, obj.get("RoomDimensions"))
         windows = Windows.from_dict(obj.get("Windows"))
         doors = Doors.from_dict(obj.get("Doors"))
-        return Room(furniture, room_dimensions, windows, doors)
+        return RoomToBeUsed(furniture, room_dimensions, windows, doors)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -107,9 +107,9 @@ class Room:
         return result
 
 
-def room_from_dict(s: Any) -> Room:
-    return Room.from_dict(s)
+def room_from_dict(s: Any) -> RoomToBeUsed:
+    return RoomToBeUsed.from_dict(s)
 
 
-def room_to_dict(x: Room) -> Any:
-    return to_class(Room, x)
+def room_to_dict(x: RoomToBeUsed) -> Any:
+    return to_class(RoomToBeUsed, x)
