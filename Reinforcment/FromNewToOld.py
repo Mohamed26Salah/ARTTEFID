@@ -38,9 +38,17 @@ Room2 =RoomToBeUsed.from_dict(data2)
 f.close()
 wallsArray = filter_list(Room1.surfaces, 'wall')
 wallsArray2=[[0 for elem in wallsArray],[0 for elem in wallsArray]]
+MaxNegativeZ= 0
+MaxNegativeX= 0
+rotations=[1,0,1,0,1,0]
 for pos,Wall in enumerate(wallsArray):
     
     wallsArray2[0][pos]= [Wall.transform[12],Wall.transform[14]]
-    
-    wallsArray2[1][pos]= [Wall.scale.x,1]
+    if MaxNegativeZ>Wall.transform[14]:
+        MaxNegativeZ=Wall.transform[14]
+    if MaxNegativeX>Wall.transform[12]:
+        MaxNegativeX=Wall.transform[12]
+    wallsArray2[1][pos]= [Wall.scale.x*100,2]
     print(wallsArray2[1][pos])
+offsetZ= abs(MaxNegativeZ)
+offsetX= abs(MaxNegativeX)
